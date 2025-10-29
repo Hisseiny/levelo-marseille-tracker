@@ -11,7 +11,7 @@ import json
 from datetime import datetime
 from supabase import create_client, Client
 
-# Configuration des URLs (sans clé API)
+# Configuration des URLs
 URL_STATUS = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_status.json"
 URL_INFO = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_information.json"
 
@@ -67,30 +67,24 @@ def process_data(api_data):
             
             bikes = status.get('num_bikes_available', 0)
             capacity = info.get('capacity', 0)
-            availability_rate = (bikes / capacity * 100) if capacity > 0 else 0
             
-            # Déterminer le statut
-            if availability_rate < 15:
-                status_label = "critical"
-            elif availability_rate < 40:
-                status_label = "warning"
-            elif availability_rate < 70:
-                status_label = "good"
-            else:
-                status_label = "excellent"
+            # Convertir station_id en entier
+            try:
+                station_id_int = int(station_id)
+            except:
+                continue
             
             processed.append({
-                'station_id': station_id,
-                'name': info.get('name', 'Station inconnue'),
+                'station_id': station_id_int,
+                'station_name': info.get('name', 'Station inconnue'),
                 'address': info.get('address', 'Adresse non disponible'),
-                'lat': info.get('lat', 0.0),
-                'lon': info.get('lon', 0.0),
-                'capacity': capacity,
-                'bikes_available': bikes,
-                'docks_available': status.get('num_docks_available', 0),
-                'availability_rate': round(availability_rate, 1),
-                'status': status_label,
-                'timestamp': datetime.now().isoformat()
+                'latitude': float(info.get('lat', 0.0)),
+                'longitude': float(info.get('lon', 0.0)),
+                'total_capacity': capacity,
+                'available_bikes': bikes,
+                'available_stands': status.get('num_docks_available', 0),
+                'status': 'active' if status.get('is_renting', 0) == 1 else 'inactive',
+                'last_update': datetime.now().isoformat()
             })
     
     print(f"✅ {len(processed)} stations traitées")
@@ -101,7 +95,7 @@ def save_to_supabase(stations_data):
     print("💾 Sauvegarde dans Supabase...")
     
     try:
-        # Insérer les données
+        # Insérer les données dans la table levelo_data
         response = supabase.table('levelo_data').insert(stations_data).execute()
         
         print(f"✅ {len(stations_data)} stations sauvegardées")
@@ -117,6 +111,24 @@ def export_json(stations_data):
     try:
         os.makedirs('data', exist_ok=True)
         
+        # Ajouter des stats pour le dashboard
+        for station in stations_data:
+            bikes = station['available_bikes']
+            capacity = station['total_capacity']
+            availability_rate = (bikes / capacity * 100) if capacity > 0 else 0
+            
+            # Déterminer le statut visuel
+            if availability_rate < 15:
+                station['display_status'] = "critical"
+            elif availability_rate < 40:
+                station['display_status'] = "warning"
+            elif availability_rate < 70:
+                station['display_status'] = "good"
+            else:
+                station['display_status'] = "excellent"
+            
+            station['availability_rate'] = round(availability_rate, 1)
+        
         with open('data/levelo_data.json', 'w', encoding='utf-8') as f:
             json.dump(stations_data, f, ensure_ascii=False, indent=2)
         
@@ -125,15 +137,6 @@ def export_json(stations_data):
     except Exception as e:
         print(f"❌ Erreur export JSON : {e}")
         return False
-
-def get_latest_stats():
-    """Récupère les stats depuis Supabase"""
-    try:
-        # Obtenir les dernières données
-        response = supabase.table('levelo_data').select('*').order('timestamp', desc=True).limit(200).execute()
-        return response.data
-    except:
-        return []
 
 def main():
     """Fonction principale"""
@@ -166,19 +169,12 @@ def main():
     # 5. Statistiques
     print("\n📊 STATISTIQUES")
     print("=" * 70)
-    total_bikes = sum(s['bikes_available'] for s in stations_data)
-    total_capacity = sum(s['capacity'] for s in stations_data)
-    critical = len([s for s in stations_data if s['status'] == 'critical'])
-    warning = len([s for s in stations_data if s['status'] == 'warning'])
-    good = len([s for s in stations_data if s['status'] == 'good'])
-    excellent = len([s for s in stations_data if s['status'] == 'excellent'])
+    total_bikes = sum(s['available_bikes'] for s in stations_data)
+    total_capacity = sum(s['total_capacity'] for s in stations_data)
     
     print(f"🚴 Vélos disponibles : {total_bikes}/{total_capacity}")
     print(f"📍 Taux moyen : {(total_bikes/total_capacity*100):.1f}%")
-    print(f"\n🔴 Critiques   : {critical}")
-    print(f"🟡 Attention   : {warning}")
-    print(f"🟢 Bonnes      : {good}")
-    print(f"🔵 Excellentes : {excellent}")
+    print(f"📊 Stations actives : {len(stations_data)}")
     print("=" * 70)
     print("✅ Collecte terminée avec succès !")
 
