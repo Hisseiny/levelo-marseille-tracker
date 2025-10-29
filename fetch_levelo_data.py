@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-LE VÉLO MARSEILLE - Collecteur de Données
+🚴 LE VÉLO MARSEILLE - Collecteur de Données
 Récupère les données de l'API et les stocke dans Supabase
 """
 
@@ -11,13 +11,11 @@ import json
 from datetime import datetime
 from supabase import create_client, Client
 
-# Configuration
-# API Le Vélo avec clé d'authentification
-API_KEY = "MjE0ZDNmMGEtNGFkZS00M2FlLWFmMWItZGNhOTZhMWQyYzM2"
-URL_STATUS = f"https://api.omega.fifteen.eu/gbfs/2.2/marseille/en/station_status.json?key={API_KEY}"
-URL_INFO = f"https://api.omega.fifteen.eu/gbfs/2.2/marseille/en/station_information.json?key={API_KEY}"
+# Configuration des URLs (sans clé API)
+URL_STATUS = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_status.json"
+URL_INFO = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_information.json"
 
-# Connexion Supabase (depuis les variables d'environnement)
+# Connexion Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
@@ -42,6 +40,8 @@ def fetch_api_data():
         data_status = response_status.json()
         data_info = response_info.json()
         
+        print(f"✅ API accessible")
+        
         return {
             'status': data_status['data']['stations'],
             'info': data_info['data']['stations']
@@ -65,8 +65,8 @@ def process_data(api_data):
         if station_id in info_dict:
             info = info_dict[station_id]
             
-            bikes = status['num_bikes_available']
-            capacity = info['capacity']
+            bikes = status.get('num_bikes_available', 0)
+            capacity = info.get('capacity', 0)
             availability_rate = (bikes / capacity * 100) if capacity > 0 else 0
             
             # Déterminer le statut
@@ -81,13 +81,13 @@ def process_data(api_data):
             
             processed.append({
                 'station_id': station_id,
-                'name': info['name'],
-                'address': info['address'],
-                'lat': info['lat'],
-                'lon': info['lon'],
+                'name': info.get('name', 'Station inconnue'),
+                'address': info.get('address', 'Adresse non disponible'),
+                'lat': info.get('lat', 0.0),
+                'lon': info.get('lon', 0.0),
                 'capacity': capacity,
                 'bikes_available': bikes,
-                'docks_available': status['num_docks_available'],
+                'docks_available': status.get('num_docks_available', 0),
                 'availability_rate': round(availability_rate, 1),
                 'status': status_label,
                 'timestamp': datetime.now().isoformat()
@@ -126,6 +126,15 @@ def export_json(stations_data):
         print(f"❌ Erreur export JSON : {e}")
         return False
 
+def get_latest_stats():
+    """Récupère les stats depuis Supabase"""
+    try:
+        # Obtenir les dernières données
+        response = supabase.table('stations').select('*').order('timestamp', desc=True).limit(200).execute()
+        return response.data
+    except:
+        return []
+
 def main():
     """Fonction principale"""
     print("=" * 70)
@@ -160,9 +169,16 @@ def main():
     total_bikes = sum(s['bikes_available'] for s in stations_data)
     total_capacity = sum(s['capacity'] for s in stations_data)
     critical = len([s for s in stations_data if s['status'] == 'critical'])
+    warning = len([s for s in stations_data if s['status'] == 'warning'])
+    good = len([s for s in stations_data if s['status'] == 'good'])
+    excellent = len([s for s in stations_data if s['status'] == 'excellent'])
     
     print(f"🚴 Vélos disponibles : {total_bikes}/{total_capacity}")
-    print(f"🔴 Stations critiques: {critical}")
+    print(f"📍 Taux moyen : {(total_bikes/total_capacity*100):.1f}%")
+    print(f"\n🔴 Critiques   : {critical}")
+    print(f"🟡 Attention   : {warning}")
+    print(f"🟢 Bonnes      : {good}")
+    print(f"🔵 Excellentes : {excellent}")
     print("=" * 70)
     print("✅ Collecte terminée avec succès !")
 
