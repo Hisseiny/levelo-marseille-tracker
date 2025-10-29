@@ -1,0 +1,40 @@
+name: Collecte Données Le Vélo
+
+on:
+  schedule:
+    # Toutes les 10 minutes
+    - cron: '*/10 * * * *'
+  
+  # Permet de lancer manuellement
+  workflow_dispatch:
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: 📥 Checkout du code
+        uses: actions/checkout@v3
+      
+      - name: 🐍 Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+      
+      - name: 📦 Installation des dépendances
+        run: |
+          pip install -r requirements.txt
+      
+      - name: 🚴 Collecte des données
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        run: |
+          python fetch_levelo_data.py
+      
+      - name: 📤 Upload JSON artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: levelo-data
+          path: data/levelo_data.json
+          retention-days: 7
