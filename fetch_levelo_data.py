@@ -102,7 +102,7 @@ def save_to_supabase(stations_data):
     
     try:
         # Insérer les données
-        response = supabase.table('stations').insert(stations_data).execute()
+        response = supabase.table('levelo_data').insert(stations_data).execute()
         
         print(f"✅ {len(stations_data)} stations sauvegardées")
         return True
@@ -130,7 +130,7 @@ def get_latest_stats():
     """Récupère les stats depuis Supabase"""
     try:
         # Obtenir les dernières données
-        response = supabase.table('stations').select('*').order('timestamp', desc=True).limit(200).execute()
+        response = supabase.table('levelo_data').select('*').order('timestamp', desc=True).limit(200).execute()
         return response.data
     except:
         return []
