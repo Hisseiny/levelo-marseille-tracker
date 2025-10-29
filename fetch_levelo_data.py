@@ -12,8 +12,10 @@ from datetime import datetime
 from supabase import create_client, Client
 
 # Configuration
-URL_STATUS = "https://transport.data.gouv.fr/gbfs/marseille/station_status.json"
-URL_INFO = "https://transport.data.gouv.fr/gbfs/marseille/station_information.json"
+# API Le Vélo avec clé d'authentification
+API_KEY = "MjE0ZDNmMGEtNGFkZS00M2FlLWFmMWItZGNhOTZhMWQyYzM2"
+URL_STATUS = f"https://api.omega.fifteen.eu/gbfs/2.2/marseille/en/station_status.json?key={API_KEY}"
+URL_INFO = f"https://api.omega.fifteen.eu/gbfs/2.2/marseille/en/station_information.json?key={API_KEY}"
 
 # Connexion Supabase (depuis les variables d'environnement)
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
