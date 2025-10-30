@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Script de collecte des données Le Vélo Marseille
-- Récupère les données depuis l'API GBFS officielle
+- Récupère les données depuis l'API GBFS Omega
 - Sauvegarde dans Supabase (PostgreSQL)
 - Exporte en JSON pour le dashboard
 """
@@ -16,8 +16,8 @@ from supabase import create_client, Client
 # CONFIGURATION
 # ═══════════════════════════════════════════════════════════
 
-# URLs de l'API Le Vélo (GBFS officielle via transport.data.gouv.fr)
-BASE_URL = "https://transport.data.gouv.fr/gbfs/marseille"
+# URLs de l'API Le Vélo (GBFS Omega Fifteen)
+BASE_URL = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en"
 STATION_STATUS_URL = f"{BASE_URL}/station_status.json"
 STATION_INFO_URL = f"{BASE_URL}/station_information.json"
 
