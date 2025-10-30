@@ -1,219 +1,274 @@
 #!/usr/bin/env python3
 """
-🚴 LE VÉLO MARSEILLE - Collecteur de Données
+Script de collecte des données Le Vélo Marseille
+- Récupère les données depuis l'API GBFS
+- Sauvegarde dans Supabase (PostgreSQL)
+- Exporte en JSON pour le dashboard
 """
 
 import os
-import sys
-import requests
 import json
+import requests
 from datetime import datetime
 from supabase import create_client, Client
 
-# Configuration
-URL_STATUS = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_status.json"
-URL_INFO = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en/station_information.json"
+# ═══════════════════════════════════════════════════════════
+# CONFIGURATION
+# ═══════════════════════════════════════════════════════════
 
+# URLs de l'API Le Vélo (GBFS - General Bikeshare Feed Specification)
+BASE_URL = "https://gbfs.fifteen.eu/marseille"
+STATION_STATUS_URL = f"{BASE_URL}/gbfs/2/fr/station_status"
+STATION_INFO_URL = f"{BASE_URL}/gbfs/2/fr/station_information"
+
+# Configuration Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
+# Vérification des variables d'environnement
 if not SUPABASE_URL or not SUPABASE_KEY:
-    print("❌ Variables d'environnement manquantes")
-    sys.exit(1)
+    print("❌ Erreur : Variables SUPABASE_URL et SUPABASE_KEY requises")
+    exit(1)
 
+# Connexion à Supabase
 supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
 
+# ═══════════════════════════════════════════════════════════
+# FONCTIONS
+# ═══════════════════════════════════════════════════════════
+
 def fetch_api_data():
-    """Récupère les données de l'API"""
+    """
+    Récupère les données depuis l'API GBFS
+    Retourne : (status_data, info_data) ou (None, None) en cas d'erreur
+    """
     print("📡 Récupération des données API...")
     
     try:
-        response_status = requests.get(URL_STATUS, timeout=10)
-        response_info = requests.get(URL_INFO, timeout=10)
+        # Récupérer le statut des stations (vélos disponibles en temps réel)
+        print(f"   → {STATION_STATUS_URL}")
+        status_response = requests.get(STATION_STATUS_URL, timeout=10)
+        status_response.raise_for_status()
+        status_data = status_response.json()['data']['stations']
+        print(f"   ✅ Stations status: {len(status_data)}")
         
-        if response_status.status_code != 200 or response_info.status_code != 200:
-            print(f"❌ Erreur HTTP : {response_status.status_code}, {response_info.status_code}")
-            return None
+        # Récupérer les infos des stations (nom, adresse, capacité)
+        print(f"   → {STATION_INFO_URL}")
+        info_response = requests.get(STATION_INFO_URL, timeout=10)
+        info_response.raise_for_status()
+        info_data = info_response.json()['data']['stations']
+        print(f"   ✅ Stations info: {len(info_data)}")
         
-        data_status = response_status.json()
-        data_info = response_info.json()
+        print("✅ API accessible")
+        return status_data, info_data
         
-        print(f"✅ API accessible")
-        
-        return {
-            'status': data_status['data']['stations'],
-            'info': data_info['data']['stations']
-        }
-    except Exception as e:
-        print(f"❌ Erreur : {e}")
-        return None
+    except requests.exceptions.RequestException as e:
+        print(f"❌ Erreur API : {e}")
+        return None, None
 
-def process_data(api_data):
-    """Traite et fusionne les données"""
+def process_data(status_data, info_data):
+    """
+    Fusionne et nettoie les données
+    Calcule les métriques (taux de disponibilité, statut)
+    """
     print("🔄 Traitement des données...")
     
-    stations_status = api_data['status']
-    stations_info = api_data['info']
-    
-    print(f"   Stations status: {len(stations_status)}")
-    print(f"   Stations info: {len(stations_info)}")
-    
-    # Afficher un exemple de station_id pour debug
-    if stations_status:
-        sample_id = stations_status[0]['station_id']
-        print(f"   Exemple station_id: '{sample_id}' (type: {type(sample_id)})")
-    
-    info_dict = {s['station_id']: s for s in stations_info}
+    # Créer un dictionnaire des infos par station_id
+    info_dict = {station['station_id']: station for station in info_data}
     
     processed = []
-    skipped = 0
     
-    for status in stations_status:
+    for status in status_data:
         station_id = status['station_id']
+        info = info_dict.get(station_id, {})
         
-        if station_id not in info_dict:
-            skipped += 1
-            continue
-        
-        info = info_dict[station_id]
-        
+        # Récupérer les valeurs
         bikes = status.get('num_bikes_available', 0)
-        capacity = info.get('capacity', 0)
+        stands = status.get('num_docks_available', 0)
+        capacity = info.get('capacity', 1)
         
-        # Essayer de convertir en int, sinon utiliser un hash
-        try:
-            if isinstance(station_id, str):
-                # Si c'est une string numérique
-                if station_id.isdigit():
-                    station_id_int = int(station_id)
-                else:
-                    # Sinon, utiliser un hash
-                    station_id_int = hash(station_id) % 1000000
-            else:
-                station_id_int = int(station_id)
-        except Exception as e:
-            print(f"   ⚠️  Erreur conversion station_id '{station_id}': {e}")
-            skipped += 1
-            continue
+        # Calculer le taux de disponibilité
+        availability_rate = round((bikes / capacity * 100), 1) if capacity > 0 else 0
         
-        try:
-            processed.append({
-                'station_id': station_id_int,
-                'station_name': str(info.get('name', 'Station inconnue'))[:255],
-                'address': str(info.get('address', 'Adresse non disponible'))[:255],
-                'latitude': float(info.get('lat', 0.0)),
-                'longitude': float(info.get('lon', 0.0)),
-                'total_capacity': int(capacity),
-                'available_bikes': int(bikes),
-                'available_stands': int(status.get('num_docks_available', 0)),
-                'status': 'active' if status.get('is_renting', 0) == 1 else 'inactive',
-                'last_update': datetime.now().isoformat()
-            })
-        except Exception as e:
-            print(f"   ⚠️  Erreur traitement station {station_id}: {e}")
-            skipped += 1
-            continue
+        # Déterminer le statut d'affichage
+        if bikes == 0:
+            display_status = "critical"
+        elif stands == 0:
+            display_status = "critical"
+        elif availability_rate < 15:
+            display_status = "critical"
+        elif availability_rate < 40:
+            display_status = "warning"
+        elif availability_rate > 70:
+            display_status = "excellent"
+        else:
+            display_status = "good"
+        
+        # Créer l'enregistrement
+        record = {
+            'station_id': station_id,
+            'station_name': info.get('name', 'Station inconnue'),
+            'address': info.get('address', 'Adresse non disponible'),
+            'latitude': info.get('lat', 0),
+            'longitude': info.get('lon', 0),
+            'available_bikes': bikes,
+            'available_stands': stands,
+            'total_capacity': capacity,
+            'status': status.get('status', 'unknown'),
+            'display_status': display_status,
+            'availability_rate': availability_rate,
+            'last_update': datetime.now().isoformat()
+        }
+        
+        processed.append(record)
     
     print(f"✅ {len(processed)} stations traitées")
-    if skipped > 0:
-        print(f"⚠️  {skipped} stations ignorées")
+    
+    # Afficher un exemple pour debug
+    if processed:
+        example = processed[0]
+        print(f"   📍 Exemple: {example['station_name']} - {example['available_bikes']} vélos")
     
     return processed
 
-def save_to_supabase(stations_data):
-    """Sauvegarde dans Supabase"""
-    print("💾 Sauvegarde dans Supabase...")
+def save_to_supabase(data):
+    """
+    Sauvegarde dans la nouvelle structure à 2 tables
+    - stations_metadata : informations statiques (nom, adresse, capacité)
+    - levelo_observations : données dynamiques (vélos disponibles)
+    """
+    print("💾 Sauvegarde dans Supabase (nouvelle structure)...")
     
-    if not stations_data:
-        print("❌ Aucune donnée à sauvegarder")
-        return False
+    saved_metadata = 0
+    saved_observations = 0
+    errors = []
     
-    try:
-        # Sauvegarder par batch de 50 pour éviter les timeouts
-        batch_size = 50
-        total_saved = 0
-        
-        for i in range(0, len(stations_data), batch_size):
-            batch = stations_data[i:i+batch_size]
-            response = supabase.table('levelo_data').insert(batch).execute()
-            total_saved += len(batch)
-            print(f"   Batch {i//batch_size + 1}: {len(batch)} stations")
-        
-        print(f"✅ {total_saved} stations sauvegardées")
-        return True
-    except Exception as e:
-        print(f"❌ Erreur Supabase : {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    for record in data:
+        try:
+            station_id = record['station_id']
+            
+            # Déterminer la zone géographique
+            lat = record['latitude']
+            if lat >= 43.30:
+                zone = 'Nord Marseille'
+            elif lat >= 43.28:
+                zone = 'Centre Marseille'
+            else:
+                zone = 'Sud Marseille'
+            
+            # 1. UPSERT dans stations_metadata
+            # (mise à jour si existe, insertion sinon)
+            supabase.table('stations_metadata').upsert({
+                'station_id': station_id,
+                'station_name': record['station_name'],
+                'address': record['address'],
+                'latitude': record['latitude'],
+                'longitude': record['longitude'],
+                'total_capacity': record['total_capacity'],
+                'zone': zone,
+                'updated_at': datetime.now().isoformat()
+            }, on_conflict='station_id').execute()
+            
+            saved_metadata += 1
+            
+            # 2. INSERT dans levelo_observations
+            # (toujours une nouvelle ligne pour l'historique)
+            supabase.table('levelo_observations').insert({
+                'station_id': station_id,
+                'available_bikes': record['available_bikes'],
+                'available_stands': record['available_stands'],
+                'status': record['status']
+            }).execute()
+            
+            saved_observations += 1
+            
+        except Exception as e:
+            error_msg = f"Station {station_id}: {str(e)}"
+            errors.append(error_msg)
+            print(f"⚠️  {error_msg}")
+            continue
+    
+    print(f"✅ {saved_metadata} métadonnées mises à jour")
+    print(f"✅ {saved_observations} observations insérées")
+    
+    if errors:
+        print(f"⚠️  {len(errors)} erreurs rencontrées")
+    
+    return saved_observations > 0
 
-def export_json(stations_data):
-    """Exporte en JSON"""
-    print("📤 Export JSON...")
+def export_json(data):
+    """
+    Exporte les données en JSON pour le dashboard Dust
+    """
+    print("💾 Export JSON...")
     
     try:
+        # Créer le dossier data s'il n'existe pas
         os.makedirs('data', exist_ok=True)
         
-        # Ajouter les stats pour le dashboard
-        for station in stations_data:
-            bikes = station['available_bikes']
-            capacity = station['total_capacity']
-            availability_rate = (bikes / capacity * 100) if capacity > 0 else 0
-            
-            if availability_rate < 15:
-                station['display_status'] = "critical"
-            elif availability_rate < 40:
-                station['display_status'] = "warning"
-            elif availability_rate < 70:
-                station['display_status'] = "good"
-            else:
-                station['display_status'] = "excellent"
-            
-            station['availability_rate'] = round(availability_rate, 1)
+        # Sauvegarder en JSON
+        output_file = 'data/levelo_data.json'
+        with open(output_file, 'w', encoding='utf-8') as f:
+            json.dump(data, f, ensure_ascii=False, indent=2)
         
-        with open('data/levelo_data.json', 'w', encoding='utf-8') as f:
-            json.dump(stations_data, f, ensure_ascii=False, indent=2)
+        print(f"✅ JSON exporté : {len(data)} stations")
+        print(f"   📁 Fichier : {output_file}")
         
-        print("✅ JSON exporté")
         return True
+        
     except Exception as e:
-        print(f"❌ Erreur export : {e}")
+        print(f"❌ Erreur export JSON : {e}")
         return False
 
 def main():
-    """Fonction principale"""
+    """
+    Fonction principale
+    """
     print("=" * 70)
-    print("🚴 LE VÉLO MARSEILLE - Collecte de Données")
-    print(f"⏰ {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print("🚴 COLLECTE DONNÉES LE VÉLO MARSEILLE")
     print("=" * 70)
+    print(f"⏰ Début : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
+    print()
     
-    # 1. Récupérer
-    api_data = fetch_api_data()
-    if not api_data:
-        sys.exit(1)
+    # 1. Récupérer les données de l'API
+    status_data, info_data = fetch_api_data()
     
-    # 2. Traiter
-    stations_data = process_data(api_data)
-    if not stations_data or len(stations_data) == 0:
-        print("❌ Aucune station traitée")
-        sys.exit(1)
+    if not status_data or not info_data:
+        print("❌ Impossible de récupérer les données API")
+        exit(1)
     
-    # 3. Sauvegarder
-    if not save_to_supabase(stations_data):
-        sys.exit(1)
+    # 2. Traiter les données
+    processed_data = process_data(status_data, info_data)
     
-    # 4. Exporter
-    export_json(stations_data)
+    if not processed_data:
+        print("❌ Aucune donnée à traiter")
+        exit(1)
     
-    # 5. Stats
-    print("\n📊 STATISTIQUES")
+    # 3. Sauvegarder dans Supabase
+    supabase_success = save_to_supabase(processed_data)
+    
+    if not supabase_success:
+        print("⚠️  Erreur lors de la sauvegarde Supabase")
+    
+    # 4. Exporter en JSON (pour le dashboard)
+    json_success = export_json(processed_data)
+    
+    if not json_success:
+        print("⚠️  Erreur lors de l'export JSON")
+    
+    # 5. Résumé
+    print()
     print("=" * 70)
-    total_bikes = sum(s['available_bikes'] for s in stations_data)
-    total_capacity = sum(s['total_capacity'] for s in stations_data)
-    print(f"🚴 Vélos : {total_bikes}/{total_capacity}")
-    print(f"📍 Taux : {(total_bikes/total_capacity*100):.1f}%")
+    if supabase_success and json_success:
+        print("✅ Collecte terminée avec succès !")
+    else:
+        print("⚠️  Collecte terminée avec des avertissements")
+    print(f"⏰ Fin : {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
     print("=" * 70)
-    print("✅ Collecte terminée !")
+
+# ═══════════════════════════════════════════════════════════
+# POINT D'ENTRÉE
+# ═══════════════════════════════════════════════════════════
 
 if __name__ == "__main__":
     main()
