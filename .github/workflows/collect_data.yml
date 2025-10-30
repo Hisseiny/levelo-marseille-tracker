@@ -3,7 +3,7 @@ name: Collecte Données Le Vélo
 on:
   schedule:
     # Toutes les 10 minutes
-    - cron: '*/10 * * * *'
+    - cron: '*/59 * * * *'
   
   # Permet de lancer manuellement
   workflow_dispatch:
