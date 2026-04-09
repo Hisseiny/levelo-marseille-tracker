@@ -7,7 +7,6 @@ import sys
 from datetime import datetime
 
 import requests
-from supabase import create_client, Client
 
 BASE_URL = "https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en"
 STATION_STATUS_URL = f"{BASE_URL}/station_status.json"
@@ -16,11 +15,13 @@ STATION_INFO_URL = f"{BASE_URL}/station_information.json"
 SUPABASE_URL = os.environ.get("SUPABASE_URL")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY")
 
-if not SUPABASE_URL or not SUPABASE_KEY:
-    print("Error: SUPABASE_URL and SUPABASE_KEY environment variables required")
-    sys.exit(1)
-
-supabase: Client = create_client(SUPABASE_URL, SUPABASE_KEY)
+supabase_client = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        from supabase import create_client
+        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+    except Exception as e:
+        print(f"Supabase init failed (continuing without): {e}")
 
 
 def fetch_api_data():
@@ -86,6 +87,10 @@ def process_data(status_data, info_data):
 
 def save_to_supabase(data):
     """Upsert metadata + insert observations into Supabase."""
+    if not supabase_client:
+        print("Supabase: skipped (not configured)")
+        return False
+
     saved = 0
     errors = 0
 
@@ -95,7 +100,7 @@ def save_to_supabase(data):
         zone = "Nord Marseille" if lat >= 43.30 else "Centre Marseille" if lat >= 43.28 else "Sud Marseille"
 
         try:
-            supabase.table("stations_metadata").upsert({
+            supabase_client.table("stations_metadata").upsert({
                 "station_id": sid,
                 "station_name": record["station_name"],
                 "address": record["address"],
@@ -106,7 +111,7 @@ def save_to_supabase(data):
                 "updated_at": datetime.now().isoformat(),
             }, on_conflict="station_id").execute()
 
-            supabase.table("levelo_observations").insert({
+            supabase_client.table("levelo_observations").insert({
                 "station_id": sid,
                 "available_bikes": record["available_bikes"],
                 "available_stands": record["available_stands"],
