@@ -438,7 +438,7 @@
     <!-- Stats -->
     <div class="stats">
       <div class="stat-card">
-        <div class="label">Velos disponibles</div>
+        <div class="label">Vélos disponibles</div>
         <div class="value" style="color:var(--blue)" id="total-bikes">--</div>
         <div class="sub" id="bikes-sub"></div>
         <div class="bar-track"><div class="bar-fill" id="bikes-bar" style="width:0;background:var(--blue)"></div></div>
@@ -450,7 +450,7 @@
         <div class="bar-track"><div class="bar-fill" id="stations-bar" style="width:0;background:var(--green)"></div></div>
       </div>
       <div class="stat-card">
-        <div class="label">Taux de disponibilite</div>
+        <div class="label">Taux de disponibilité</div>
         <div class="value" id="system-rate" style="color:var(--amber)">--</div>
         <div class="sub">Moyenne toutes stations</div>
         <div class="bar-track"><div class="bar-fill" id="rate-bar" style="width:0;background:var(--amber)"></div></div>
@@ -458,7 +458,7 @@
       <div class="stat-card">
         <div class="label">Stations vides</div>
         <div class="value" style="color:var(--red)" id="empty-count">--</div>
-        <div class="sub" id="empty-sub">Aucun velo disponible</div>
+        <div class="sub" id="empty-sub">Aucun vélo disponible</div>
         <div class="bar-track"><div class="bar-fill" id="empty-bar" style="width:0;background:var(--red)"></div></div>
       </div>
     </div>
@@ -507,7 +507,7 @@
           <button class="filter-btn active" data-filter="all">Toutes</button>
           <button class="filter-btn" data-filter="critical">Critiques</button>
           <button class="filter-btn" data-filter="warning">Faibles</button>
-          <input type="text" class="search-input" id="search" placeholder="Rechercher une station...">
+          <input type="text" class="search-input" id="search" placeholder="Rechercher une station…...">
         </div>
       </div>
       <div class="table-wrap">
@@ -515,10 +515,10 @@
           <thead>
             <tr>
               <th data-sort="name">Station</th>
-              <th data-sort="bikes">Velos</th>
+              <th data-sort="bikes">Vélos</th>
               <th data-sort="stands">Places</th>
-              <th data-sort="rate">Disponibilite</th>
-              <th data-sort="status">Etat</th>
+              <th data-sort="rate">Disponibilité</th>
+              <th data-sort="status">État</th>
             </tr>
           </thead>
           <tbody id="station-tbody">
@@ -534,9 +534,9 @@
 
     <!-- Chart -->
     <div class="section">
-      <div class="section-title">Evolution en temps reel</div>
+      <div class="section-title">Évolution en temps réel</div>
       <div class="chart-wrap">
-        <div class="chart-note" id="chart-note">Les donnees s'accumulent pendant votre session. Gardez la page ouverte pour voir l'evolution.</div>
+        <div class="chart-note" id="chart-note">Les données s'accumulent pendant votre session. Gardez la page ouverte pour voir l'évolution.</div>
         <canvas id="trend-chart"></canvas>
       </div>
     </div>
@@ -544,7 +544,7 @@
   </div>
 
   <div class="footer">
-    Donnees GBFS Omega &middot; Actualisation automatique toutes les 60s &middot; Le Velo Marseille
+    Données GBFS Omega &middot; Actualisation automatique toutes les 60s &middot; Le Velo Marseille
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -564,8 +564,8 @@
     let stations = [];
     let sortCol = 'name', sortAsc = true;
     let statusFilter = 'all';
+    let useSessionChart = false;
 
-    // In-session trend history
     const sessionHistory = [];
 
     // ------- Init -------
@@ -597,6 +597,7 @@
       if (SB_URL && SB_KEY) {
         loadSupabaseTrends();
       } else {
+        useSessionChart = true;
         initSessionChart();
       }
     });
@@ -615,7 +616,7 @@
 
     function statusKey(bikes, stands, capacity) {
       const r = rate(bikes, capacity);
-      if (bikes === 0 || stands === 0 || r < 0.15) return 'critical';
+      if (bikes === 0 || r < 0.15) return 'critical';
       if (r < 0.4) return 'warning';
       if (r > 0.7) return 'excellent';
       return 'good';
@@ -656,9 +657,9 @@
 
         marker.bindPopup(`
           <div class="popup-name">${s.name}</div>
-          <div class="popup-row"><span class="popup-label">Velos</span><strong>${s.bikes} / ${s.capacity}</strong></div>
+          <div class="popup-row"><span class="popup-label">Vélos</span><strong>${s.bikes} / ${s.capacity}</strong></div>
           <div class="popup-row"><span class="popup-label">Places libres</span><strong>${s.stands}</strong></div>
-          <div class="popup-row"><span class="popup-label">Disponibilite</span><strong>${pct}%</strong></div>
+          <div class="popup-row"><span class="popup-label">Disponibilité</span><strong>${pct}%</strong></div>
           <div class="popup-bar-track"><div class="popup-bar-fill" style="width:${pct}%;background:${color}"></div></div>
           <div style="font-size:11px;color:#6b7280;margin-top:6px">${s.address || ''}</div>
         `, { maxWidth: 220 });
@@ -687,7 +688,7 @@
             bikes: s.num_bikes_available || 0,
             stands: s.num_docks_available || 0,
             capacity: info.capacity || 0,
-            active: s.status === 'IN_SERVICE',
+            active: s.is_renting !== false && s.is_returning !== false,
           };
         });
 
@@ -700,11 +701,21 @@
 
         const now = new Date();
         document.getElementById('last-update').textContent =
-          `Mis a jour a ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+          `Mis à jour à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
+
+        const badge = document.querySelector('.live-badge');
+        badge.style.color = 'var(--green)';
+        badge.style.background = 'var(--green-bg)';
+        badge.querySelector('.dot').style.background = 'var(--green)';
+        badge.lastElementChild && (badge.childNodes[1].textContent = 'En direct');
 
       } catch (err) {
         console.error('Load error:', err);
-        document.getElementById('last-update').textContent = 'Erreur de chargement';
+        document.getElementById('last-update').textContent = 'Erreur de mise à jour';
+        const badge = document.querySelector('.live-badge');
+        badge.style.color = 'var(--red)';
+        badge.style.background = 'var(--red-bg)';
+        badge.querySelector('.dot').style.background = 'var(--red)';
       }
     }
 
@@ -731,7 +742,7 @@
       document.getElementById('rate-bar').style.background = rateEl.style.color;
 
       document.getElementById('empty-count').textContent = empty;
-      document.getElementById('empty-sub').textContent = empty === 0 ? 'Toutes les stations ont des velos' : `${empty} station${empty > 1 ? 's' : ''} sans velo`;
+      document.getElementById('empty-sub').textContent = empty === 0 ? 'Toutes les stations ont des vélos' : `${empty} station${empty > 1 ? 's' : ''} sans vélo`;
       document.getElementById('empty-bar').style.width = `${stations.length > 0 ? (empty/stations.length)*100 : 0}%`;
     }
 
@@ -746,14 +757,15 @@
       const totalCap = stations.reduce((s, x) => s + x.capacity, 0);
 
       document.getElementById('best-station').textContent = best.name;
-      document.getElementById('best-detail').textContent = `${best.bikes} velos sur ${best.capacity} (${Math.round(rate(best.bikes, best.capacity)*100)}%)`;
+      document.getElementById('best-detail').textContent = `${best.bikes} vélos sur ${best.capacity} (${Math.round(rate(best.bikes, best.capacity)*100)}%)`;
 
       document.getElementById('worst-station').textContent = worst.name;
       document.getElementById('worst-station').style.color = worst.bikes === 0 ? 'var(--red)' : '';
-      document.getElementById('worst-detail').textContent = `${worst.bikes} velos sur ${worst.capacity} (${Math.round(rate(worst.bikes, worst.capacity)*100)}%)`;
+      document.getElementById('worst-detail').textContent = `${worst.bikes} vélos sur ${worst.capacity} (${Math.round(rate(worst.bikes, worst.capacity)*100)}%)`;
 
       document.getElementById('total-stands').textContent = totalStands.toLocaleString('fr-FR');
-      document.getElementById('stands-detail').textContent = `${Math.round(totalStands / totalCap * 100)}% de la capacite totale libre`;
+      const standsPct = totalCap > 0 ? Math.round(totalStands / totalCap * 100) : 0;
+      document.getElementById('stands-detail').textContent = `${standsPct}% de la capacité totale libre`;
     }
 
     // ------- Zones -------
@@ -769,7 +781,9 @@
       });
 
       const container = document.getElementById('zone-bar');
-      container.innerHTML = Object.entries(zones).map(([name, z]) => {
+      const zoneOrder = ['Nord', 'Centre', 'Sud'];
+      container.innerHTML = zoneOrder.filter(n => zones[n]).map(name => {
+        const z = zones[name];
         const r = z.capacity > 0 ? Math.round(z.bikes / z.capacity * 100) : 0;
         const color = r >= 50 ? 'var(--green)' : r >= 25 ? 'var(--amber)' : 'var(--red)';
         return `
@@ -778,7 +792,7 @@
               <span class="zone-name">${name}</span>
               <span class="zone-rate" style="color:${color}">${r}%</span>
             </div>
-            <div class="zone-detail">${z.bikes} velos / ${z.capacity} places &middot; ${z.count} stations${z.empty > 0 ? ` &middot; ${z.empty} vide${z.empty > 1 ? 's' : ''}` : ''}</div>
+            <div class="zone-detail">${z.bikes} vélos / ${z.capacity} places &middot; ${z.count} stations${z.empty > 0 ? ` &middot; ${z.empty} vide${z.empty > 1 ? 's' : ''}` : ''}</div>
             <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${r}%;background:${color}"></div></div>
           </div>
         `;
@@ -818,7 +832,7 @@
 
       const tbody = document.getElementById('station-tbody');
       if (filtered.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">Aucune station trouvee</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:32px;color:var(--muted)">Aucune station trouvée</td></tr>';
         document.getElementById('table-count').textContent = '';
         return;
       }
@@ -842,6 +856,7 @@
 
     // ------- Session chart (no Supabase needed) -------
     function recordSessionPoint() {
+      if (!useSessionChart) return;
       const totalBikes = stations.reduce((s, x) => s + x.bikes, 0);
       const totalStands = stations.reduce((s, x) => s + x.stands, 0);
       const now = new Date();
@@ -865,7 +880,7 @@
           labels: [],
           datasets: [
             {
-              label: 'Velos disponibles',
+              label: 'Vélos disponibles',
               data: [],
               borderColor: '#0078D4',
               backgroundColor: 'rgba(0,120,212,0.06)',
@@ -942,7 +957,8 @@
           .order('created_at', { ascending: true });
 
         if (error || !data || data.length === 0) {
-          document.getElementById('chart-note').textContent = 'Aucune donnee historique trouvee dans Supabase. Mode session active.';
+          document.getElementById('chart-note').textContent = 'Aucune donnée historique trouvée dans Supabase. Mode session actif.';
+          useSessionChart = true;
           initSessionChart();
           return;
         }
@@ -972,7 +988,7 @@
             labels,
             datasets: [
               {
-                label: 'Velos disponibles (moy.)',
+                label: 'Vélos disponibles (moy.)',
                 data: bikeValues,
                 borderColor: '#0078D4',
                 backgroundColor: 'rgba(0,120,212,0.06)',
@@ -1004,7 +1020,8 @@
 
       } catch (err) {
         console.error('Supabase error:', err);
-        document.getElementById('chart-note').textContent = 'Erreur Supabase. Mode session active.';
+        document.getElementById('chart-note').textContent = 'Erreur Supabase. Mode session actif.';
+        useSessionChart = true;
         initSessionChart();
       }
     }

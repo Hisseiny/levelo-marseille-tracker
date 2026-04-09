@@ -54,10 +54,10 @@ def process_data(status_data, info_data):
 
         bikes = status.get("num_bikes_available", 0)
         stands = status.get("num_docks_available", 0)
-        capacity = info.get("capacity", 1)
+        capacity = info.get("capacity", 0)
         rate = round(bikes / capacity * 100, 1) if capacity > 0 else 0
 
-        if bikes == 0 or stands == 0 or rate < 15:
+        if bikes == 0 or rate < 15:
             display_status = "critical"
         elif rate < 40:
             display_status = "warning"
@@ -75,7 +75,7 @@ def process_data(status_data, info_data):
             "available_bikes": bikes,
             "available_stands": stands,
             "total_capacity": capacity,
-            "status": status.get("status", "unknown"),
+            "status": "IN_SERVICE" if status.get("is_renting") and status.get("is_returning") else "CLOSED",
             "display_status": display_status,
             "availability_rate": rate,
             "last_update": datetime.now().isoformat(),
