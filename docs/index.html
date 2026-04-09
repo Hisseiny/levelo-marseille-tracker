@@ -3,126 +3,185 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Le Velo Marseille - Tableau de bord</title>
+  <title>Le Vélo Marseille - Tableau de bord</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --blue: #0078D4;
-      --blue-light: #e8f4fd;
+      --blue: #2563eb;
+      --blue-light: #eff6ff;
+      --blue-glow: rgba(37,99,235,0.12);
       --green: #16a34a;
-      --green-bg: #dcfce7;
+      --green-bg: #f0fdf4;
       --amber: #d97706;
-      --amber-bg: #fef3c7;
+      --amber-bg: #fffbeb;
       --red: #dc2626;
-      --red-bg: #fee2e2;
-      --bg: #f4f5f7;
+      --red-bg: #fef2f2;
+      --bg: #f8fafc;
       --card: #ffffff;
-      --text: #1a1a1a;
-      --muted: #6b7280;
-      --border: #e5e7eb;
-      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
-      --radius: 10px;
+      --text: #0f172a;
+      --muted: #64748b;
+      --border: #e2e8f0;
+      --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
+      --shadow: 0 1px 3px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.07), 0 1px 3px rgba(0,0,0,0.04);
+      --shadow-lg: 0 8px 24px rgba(0,0,0,0.08), 0 2px 8px rgba(0,0,0,0.04);
+      --radius: 12px;
+      --radius-lg: 16px;
     }
 
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
       background: var(--bg);
       color: var(--text);
       line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
     }
 
     /* Header */
     .header {
-      background: var(--card);
-      border-bottom: 1px solid var(--border);
-      padding: 14px 24px;
+      background: linear-gradient(135deg, #1e3a5f 0%, #1e40af 100%);
+      padding: 16px 28px;
       display: flex;
       align-items: center;
       justify-content: space-between;
       position: sticky;
       top: 0;
       z-index: 1000;
+      box-shadow: 0 2px 12px rgba(30,64,175,0.15);
     }
 
-    .header-left { display: flex; align-items: center; gap: 12px; }
+    .header-left { display: flex; align-items: center; gap: 14px; }
 
-    .header h1 { font-size: 20px; font-weight: 600; letter-spacing: -0.3px; }
-    .header h1 span { color: var(--blue); }
+    .header h1 {
+      font-size: 19px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -0.3px;
+    }
+
+    .header h1 span {
+      background: linear-gradient(135deg, #60a5fa, #93c5fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
 
     .live-badge {
       display: flex;
       align-items: center;
       gap: 6px;
-      font-size: 12px;
+      font-size: 11px;
       font-weight: 600;
-      color: var(--green);
-      background: var(--green-bg);
-      padding: 3px 10px;
-      border-radius: 12px;
+      color: #4ade80;
+      background: rgba(74,222,128,0.12);
+      padding: 4px 10px;
+      border-radius: 20px;
+      backdrop-filter: blur(4px);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
 
     .live-badge .dot {
       width: 6px; height: 6px;
-      background: var(--green);
+      background: #4ade80;
       border-radius: 50%;
       animation: pulse 2s ease-in-out infinite;
+      box-shadow: 0 0 6px rgba(74,222,128,0.5);
     }
 
-    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+    @keyframes pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: 0.4; transform: scale(0.85); } }
 
-    .header-right { font-size: 13px; color: var(--muted); }
+    .header-right {
+      font-size: 12px;
+      color: rgba(255,255,255,0.7);
+      font-weight: 500;
+    }
 
     /* Container */
-    .container { max-width: 1400px; margin: 0 auto; padding: 0 24px; }
+    .container { max-width: 1400px; margin: 0 auto; padding: 0 28px; }
+
+    /* Entrance animations */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .animate-in {
+      animation: fadeUp 0.5s ease-out both;
+    }
 
     /* Stats */
     .stats {
       display: grid;
       grid-template-columns: repeat(4, 1fr);
-      gap: 14px;
-      padding: 20px 0;
+      gap: 16px;
+      padding: 24px 0 20px;
     }
 
     .stat-card {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px 20px;
+      border-radius: var(--radius-lg);
+      padding: 20px 22px;
       box-shadow: var(--shadow);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeUp 0.5s ease-out both;
+    }
+
+    .stat-card:nth-child(1) { animation-delay: 0.05s; }
+    .stat-card:nth-child(2) { animation-delay: 0.1s; }
+    .stat-card:nth-child(3) { animation-delay: 0.15s; }
+    .stat-card:nth-child(4) { animation-delay: 0.2s; }
+
+    .stat-card:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-md);
     }
 
     .stat-card .label {
       font-size: 11px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.7px;
       color: var(--muted);
-      margin-bottom: 6px;
+      margin-bottom: 8px;
     }
 
-    .stat-card .value { font-size: 28px; font-weight: 700; letter-spacing: -1px; }
-    .stat-card .sub { font-size: 12px; color: var(--muted); margin-top: 3px; }
+    .stat-card .value {
+      font-size: 30px;
+      font-weight: 700;
+      letter-spacing: -1.5px;
+      font-variant-numeric: tabular-nums;
+      transition: color 0.4s ease;
+    }
+
+    .stat-card .sub {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 4px;
+    }
 
     .stat-card .bar-track {
       height: 4px;
-      background: var(--border);
+      background: var(--bg);
       border-radius: 2px;
-      margin-top: 10px;
+      margin-top: 12px;
       overflow: hidden;
     }
 
     .stat-card .bar-fill {
       height: 100%;
       border-radius: 2px;
-      transition: width 0.6s ease;
+      transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    /* Insights strip */
+    /* Insights */
     .insights {
       display: flex;
-      gap: 14px;
+      gap: 16px;
       padding-bottom: 20px;
     }
 
@@ -131,122 +190,113 @@
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 14px 18px;
-      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeUp 0.5s ease-out both;
+      animation-delay: 0.25s;
     }
+
+    .insight-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 
     .insight-card .insight-label {
-      font-size: 11px;
+      font-size: 10px;
       font-weight: 600;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+      letter-spacing: 0.7px;
       color: var(--muted);
-      margin-bottom: 4px;
+      margin-bottom: 5px;
     }
 
-    .insight-card .insight-value {
-      font-size: 14px;
-      font-weight: 600;
-    }
+    .insight-card .insight-value { font-size: 14px; font-weight: 600; }
+    .insight-card .insight-detail { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
-    .insight-card .insight-detail {
-      font-size: 12px;
-      color: var(--muted);
-      margin-top: 2px;
-    }
-
-    /* Zone bar */
-    .zone-bar {
-      display: flex;
-      gap: 14px;
-      padding-bottom: 20px;
-    }
+    /* Zones */
+    .zone-bar { display: flex; gap: 16px; padding-bottom: 20px; }
 
     .zone-card {
       flex: 1;
       background: var(--card);
       border: 1px solid var(--border);
       border-radius: var(--radius);
-      padding: 14px 18px;
-      box-shadow: var(--shadow);
+      padding: 16px 20px;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+      animation: fadeUp 0.5s ease-out both;
+      animation-delay: 0.3s;
     }
 
-    .zone-card .zone-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 8px;
-    }
+    .zone-card:hover { transform: translateY(-1px); box-shadow: var(--shadow); }
 
-    .zone-card .zone-name {
-      font-size: 13px;
-      font-weight: 600;
-    }
-
-    .zone-card .zone-rate {
-      font-size: 13px;
-      font-weight: 700;
-    }
-
-    .zone-card .zone-detail {
-      font-size: 12px;
-      color: var(--muted);
-    }
-
-    .zone-card .zone-bar-track {
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      margin-top: 8px;
-      overflow: hidden;
-    }
-
-    .zone-card .zone-bar-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.6s ease;
-    }
+    .zone-card .zone-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .zone-card .zone-name { font-size: 13px; font-weight: 600; }
+    .zone-card .zone-rate { font-size: 14px; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .zone-card .zone-detail { font-size: 12px; color: var(--muted); }
+    .zone-card .zone-bar-track { height: 5px; background: var(--bg); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+    .zone-card .zone-bar-fill { height: 100%; border-radius: 3px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
 
     /* Map */
     .section { padding-bottom: 20px; }
-    .section-title { font-size: 15px; font-weight: 600; margin-bottom: 10px; }
+    .section-title { font-size: 14px; font-weight: 600; margin-bottom: 10px; letter-spacing: -0.2px; }
 
     .map-wrap {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow);
+      animation: fadeUp 0.5s ease-out both;
+      animation-delay: 0.35s;
     }
 
     .map-legend {
       display: flex;
-      gap: 16px;
-      padding: 10px 16px;
+      gap: 20px;
+      padding: 10px 18px;
       border-top: 1px solid var(--border);
-      font-size: 12px;
+      font-size: 11px;
       color: var(--muted);
+      font-weight: 500;
     }
 
-    .legend-item { display: flex; align-items: center; gap: 5px; }
+    .legend-item { display: flex; align-items: center; gap: 6px; }
+    .legend-dot { width: 10px; height: 10px; border-radius: 50%; box-shadow: 0 0 0 2px #fff, 0 0 0 3px rgba(0,0,0,0.08); }
 
-    .legend-dot {
-      width: 10px; height: 10px;
-      border-radius: 50%;
-      border: 2px solid #fff;
-      box-shadow: 0 0 0 1px rgba(0,0,0,0.1);
+    #map { height: 480px; width: 100%; }
+
+    /* Leaflet popup styling */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06) !important;
+      padding: 0 !important;
+      border: 1px solid var(--border) !important;
     }
 
-    #map { height: 460px; width: 100%; }
+    .leaflet-popup-content {
+      margin: 16px 18px !important;
+      font-family: 'Inter', sans-serif !important;
+      line-height: 1.5 !important;
+    }
 
-    .leaflet-popup-content { font-family: inherit; line-height: 1.5; }
-    .popup-name { font-weight: 600; font-size: 14px; margin-bottom: 6px; }
-    .popup-row { display: flex; justify-content: space-between; font-size: 13px; padding: 2px 0; }
+    .leaflet-popup-tip { box-shadow: 0 4px 8px rgba(0,0,0,0.08) !important; }
+
+    .popup-name { font-weight: 700; font-size: 14px; margin-bottom: 8px; color: var(--text); }
+    .popup-row { display: flex; justify-content: space-between; font-size: 13px; padding: 3px 0; }
     .popup-row .popup-label { color: var(--muted); }
-    .popup-bar-track { height: 5px; background: var(--border); border-radius: 3px; margin-top: 8px; overflow: hidden; }
-    .popup-bar-fill { height: 100%; border-radius: 3px; }
+    .popup-bar-track { height: 6px; background: var(--bg); border-radius: 3px; margin-top: 10px; overflow: hidden; }
+    .popup-bar-fill { height: 100%; border-radius: 3px; transition: width 0.4s ease; }
+    .popup-addr { font-size: 11px; color: var(--muted); margin-top: 8px; padding-top: 8px; border-top: 1px solid var(--border); }
+
+    /* Custom pulsing markers for critical stations */
+    @keyframes markerPulse {
+      0% { box-shadow: 0 0 0 0 rgba(220,38,38,0.4); }
+      70% { box-shadow: 0 0 0 8px rgba(220,38,38,0); }
+      100% { box-shadow: 0 0 0 0 rgba(220,38,38,0); }
+    }
 
     /* Table */
+    .table-section { animation: fadeUp 0.5s ease-out both; animation-delay: 0.4s; }
+
     .table-header {
       display: flex;
       align-items: center;
@@ -254,48 +304,51 @@
       margin-bottom: 10px;
     }
 
-    .table-controls { display: flex; gap: 10px; align-items: center; }
+    .table-controls { display: flex; gap: 8px; align-items: center; }
 
     .search-input {
-      padding: 7px 12px;
+      padding: 8px 14px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 13px;
+      font-family: inherit;
       width: 240px;
       outline: none;
-      transition: border-color 0.15s;
+      transition: all 0.2s ease;
+      background: var(--card);
     }
 
-    .search-input:focus { border-color: var(--blue); }
+    .search-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px var(--blue-glow); }
 
     .filter-btn {
-      padding: 6px 12px;
+      padding: 7px 14px;
       border: 1px solid var(--border);
-      border-radius: 6px;
+      border-radius: 8px;
       font-size: 12px;
       font-weight: 500;
+      font-family: inherit;
       background: var(--card);
       cursor: pointer;
-      transition: all 0.15s;
+      transition: all 0.2s ease;
     }
 
     .filter-btn:hover { border-color: var(--blue); color: var(--blue); }
-    .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); }
+    .filter-btn.active { background: var(--blue); color: #fff; border-color: var(--blue); box-shadow: 0 2px 8px rgba(37,99,235,0.25); }
 
     .table-wrap {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
+      border-radius: var(--radius-lg);
       overflow: hidden;
       box-shadow: var(--shadow);
     }
 
     table { width: 100%; border-collapse: collapse; font-size: 13px; }
-    thead { background: var(--bg); }
+    thead { background: #f8fafc; }
 
     th {
       text-align: left;
-      padding: 9px 14px;
+      padding: 10px 16px;
       font-weight: 600;
       font-size: 11px;
       text-transform: uppercase;
@@ -304,46 +357,36 @@
       cursor: pointer;
       user-select: none;
       white-space: nowrap;
+      transition: color 0.15s;
     }
 
     th:hover { color: var(--text); }
     th.sorted { color: var(--blue); }
 
-    td { padding: 9px 14px; border-top: 1px solid var(--border); }
+    td { padding: 10px 16px; border-top: 1px solid var(--border); transition: background 0.15s; }
+
+    tr { cursor: pointer; }
     tr:hover td { background: var(--blue-light); }
 
-    .station-name { font-weight: 600; }
+    .station-name { font-weight: 600; font-size: 13px; }
     .station-addr { font-size: 11px; color: var(--muted); margin-top: 1px; }
 
     .avail-bar { display: flex; align-items: center; gap: 8px; }
-
-    .avail-track {
-      flex: 1;
-      height: 6px;
-      background: var(--border);
-      border-radius: 3px;
-      overflow: hidden;
-      min-width: 60px;
-    }
-
-    .avail-fill {
-      height: 100%;
-      border-radius: 3px;
-      transition: width 0.4s ease;
-    }
-
-    .avail-pct { font-size: 12px; font-weight: 600; min-width: 36px; text-align: right; }
+    .avail-track { flex: 1; height: 6px; background: var(--bg); border-radius: 3px; overflow: hidden; min-width: 60px; }
+    .avail-fill { height: 100%; border-radius: 3px; transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1); }
+    .avail-pct { font-size: 12px; font-weight: 600; min-width: 36px; text-align: right; font-variant-numeric: tabular-nums; }
 
     .badge {
       display: inline-block;
-      padding: 2px 9px;
-      border-radius: 10px;
+      padding: 3px 10px;
+      border-radius: 20px;
       font-size: 11px;
       font-weight: 600;
+      letter-spacing: 0.2px;
     }
 
     .badge.excellent { background: var(--green-bg); color: #15803d; }
-    .badge.good { background: #dbeafe; color: #1d4ed8; }
+    .badge.good { background: var(--blue-light); color: #1d4ed8; }
     .badge.warning { background: var(--amber-bg); color: #b45309; }
     .badge.critical { background: var(--red-bg); color: #b91c1c; }
 
@@ -355,70 +398,59 @@
     .table-footer {
       display: flex;
       justify-content: space-between;
-      padding: 10px 14px;
+      padding: 10px 16px;
       font-size: 12px;
       color: var(--muted);
       border-top: 1px solid var(--border);
     }
 
     /* Chart */
+    .chart-section { animation: fadeUp 0.5s ease-out both; animation-delay: 0.45s; }
+
     .chart-wrap {
       background: var(--card);
       border: 1px solid var(--border);
-      border-radius: var(--radius);
-      padding: 18px;
+      border-radius: var(--radius-lg);
+      padding: 20px;
       box-shadow: var(--shadow);
     }
 
-    .chart-note {
-      font-size: 12px;
-      color: var(--muted);
-      margin-bottom: 12px;
-    }
-
+    .chart-note { font-size: 12px; color: var(--muted); margin-bottom: 14px; font-weight: 500; }
     #trend-chart { width: 100%; height: 260px; }
 
     /* Footer */
     .footer {
       text-align: center;
-      padding: 20px;
+      padding: 24px;
       font-size: 12px;
       color: var(--muted);
-      border-top: 1px solid var(--border);
       margin-top: 12px;
     }
 
+    .footer a { color: var(--blue); text-decoration: none; }
+
     /* Spinner */
-    .loading {
-      display: flex; align-items: center; justify-content: center;
-      padding: 60px; color: var(--muted); font-size: 14px; gap: 10px;
-    }
-
-    .spinner {
-      width: 16px; height: 16px;
-      border: 2px solid var(--border);
-      border-top-color: var(--blue);
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-    }
-
+    .loading { display: flex; align-items: center; justify-content: center; padding: 60px; color: var(--muted); font-size: 13px; gap: 10px; }
+    .spinner { width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--blue); border-radius: 50%; animation: spin 0.7s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     /* Responsive */
     @media (max-width: 900px) {
       .container { padding: 0 16px; }
-      .stats { grid-template-columns: repeat(2, 1fr); }
+      .header { padding: 14px 16px; }
+      .stats { grid-template-columns: repeat(2, 1fr); gap: 12px; }
       .insights, .zone-bar { flex-direction: column; }
-      #map { height: 340px; }
+      #map { height: 360px; }
       .table-wrap { overflow-x: auto; }
-      table { min-width: 650px; }
-      .search-input { width: 180px; }
+      table { min-width: 620px; }
+      .search-input { width: 160px; }
     }
 
     @media (max-width: 480px) {
-      .header { flex-direction: column; gap: 6px; align-items: flex-start; padding: 12px 16px; }
+      .header { flex-direction: column; gap: 8px; align-items: flex-start; }
       .stats { gap: 10px; }
-      .stat-card .value { font-size: 22px; }
+      .stat-card .value { font-size: 24px; }
+      .stat-card { padding: 16px; }
       .table-controls { flex-wrap: wrap; }
     }
   </style>
@@ -427,7 +459,7 @@
 
   <div class="header">
     <div class="header-left">
-      <h1>Le <span>Velo</span> Marseille</h1>
+      <h1>Le <span>Vélo</span> Marseille</h1>
       <div class="live-badge"><div class="dot"></div>En direct</div>
     </div>
     <div class="header-right" id="last-update">Chargement...</div>
@@ -435,7 +467,6 @@
 
   <div class="container">
 
-    <!-- Stats -->
     <div class="stats">
       <div class="stat-card">
         <div class="label">Vélos disponibles</div>
@@ -463,7 +494,6 @@
       </div>
     </div>
 
-    <!-- Insights -->
     <div class="insights">
       <div class="insight-card">
         <div class="insight-label">Station la plus remplie</div>
@@ -482,32 +512,29 @@
       </div>
     </div>
 
-    <!-- Zones -->
     <div class="zone-bar" id="zone-bar"></div>
 
-    <!-- Map -->
     <div class="section">
       <div class="section-title">Carte des stations</div>
       <div class="map-wrap">
         <div id="map"></div>
         <div class="map-legend">
-          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Excellent (>70%)</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Bon (40-70%)</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Faible (15-40%)</div>
-          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Critique (<15%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div> Excellent (&gt;70%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--blue)"></div> Bon (40–70%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div> Faible (15–40%)</div>
+          <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div> Critique (&lt;15%)</div>
         </div>
       </div>
     </div>
 
-    <!-- Table -->
-    <div class="section">
+    <div class="section table-section">
       <div class="table-header">
         <div class="section-title">Toutes les stations</div>
         <div class="table-controls">
           <button class="filter-btn active" data-filter="all">Toutes</button>
           <button class="filter-btn" data-filter="critical">Critiques</button>
           <button class="filter-btn" data-filter="warning">Faibles</button>
-          <input type="text" class="search-input" id="search" placeholder="Rechercher une station…...">
+          <input type="text" class="search-input" id="search" placeholder="Rechercher une station…">
         </div>
       </div>
       <div class="table-wrap">
@@ -522,18 +549,17 @@
             </tr>
           </thead>
           <tbody id="station-tbody">
-            <tr><td colspan="5" class="loading"><div class="spinner"></div> Chargement...</td></tr>
+            <tr><td colspan="5" class="loading"><div class="spinner"></div> Chargement des stations...</td></tr>
           </tbody>
         </table>
         <div class="table-footer">
           <span id="table-count"></span>
-          <span>Cliquer sur un en-tete pour trier</span>
+          <span>Cliquer sur une ligne pour localiser sur la carte</span>
         </div>
       </div>
     </div>
 
-    <!-- Chart -->
-    <div class="section">
+    <div class="section chart-section">
       <div class="section-title">Évolution en temps réel</div>
       <div class="chart-wrap">
         <div class="chart-note" id="chart-note">Les données s'accumulent pendant votre session. Gardez la page ouverte pour voir l'évolution.</div>
@@ -544,7 +570,7 @@
   </div>
 
   <div class="footer">
-    Données GBFS Omega &middot; Actualisation automatique toutes les 60s &middot; Le Velo Marseille
+    Données <a href="https://gbfs.omega.fifteen.eu/gbfs/2.2/marseille/en" target="_blank" rel="noopener">GBFS Omega</a> · Actualisation toutes les 60 s · Le Vélo Marseille
   </div>
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -556,16 +582,15 @@
     const INFO_URL = `${GBFS_BASE}/station_information.json`;
     const REFRESH_MS = 60_000;
 
-    // Supabase (public anon key for read-only dashboard access)
     const SB_URL = 'https://ivfstnypwyshxhylbwxq.supabase.co';
     const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2ZnN0bnlwd3lzaHhoeWxid3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTA2MzIsImV4cCI6MjA5MTMyNjYzMn0.gdER0P8rslOTPf0J2pY-sUzhSHWgBBDVbrl2AwM2NxY';
 
     let map, markerLayer, chart;
     let stations = [];
+    let markerMap = {};
     let sortCol = 'name', sortAsc = true;
     let statusFilter = 'all';
     let useSessionChart = false;
-
     const sessionHistory = [];
 
     // ------- Init -------
@@ -575,7 +600,6 @@
       setInterval(loadData, REFRESH_MS);
 
       document.getElementById('search').addEventListener('input', renderTable);
-
       document.querySelectorAll('th[data-sort]').forEach(th => {
         th.addEventListener('click', () => {
           const col = th.dataset.sort;
@@ -584,7 +608,6 @@
           renderTable();
         });
       });
-
       document.querySelectorAll('.filter-btn').forEach(btn => {
         btn.addEventListener('click', () => {
           document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
@@ -594,38 +617,29 @@
         });
       });
 
-      if (SB_URL && SB_KEY) {
-        loadSupabaseTrends();
-      } else {
-        useSessionChart = true;
-        initSessionChart();
-      }
+      if (SB_URL && SB_KEY) loadSupabaseTrends();
+      else { useSessionChart = true; initSessionChart(); }
     });
 
     // ------- Helpers -------
-    function rate(bikes, capacity) {
-      return capacity > 0 ? bikes / capacity : 0;
-    }
+    function pct(bikes, capacity) { return capacity > 0 ? bikes / capacity : 0; }
 
-    function rateColor(r) {
+    function pctColor(r) {
       if (r < 0.15) return 'var(--red)';
       if (r < 0.4) return 'var(--amber)';
       if (r > 0.7) return 'var(--green)';
       return 'var(--blue)';
     }
 
-    function statusKey(bikes, stands, capacity) {
-      const r = rate(bikes, capacity);
+    function statusKey(bikes, capacity) {
+      const r = pct(bikes, capacity);
       if (bikes === 0 || r < 0.15) return 'critical';
       if (r < 0.4) return 'warning';
       if (r > 0.7) return 'excellent';
       return 'good';
     }
 
-    function markerColor(bikes, stands, capacity) {
-      const s = statusKey(bikes, stands, capacity);
-      return { critical: '#dc2626', warning: '#d97706', good: '#0078D4', excellent: '#16a34a' }[s] || '#9ca3af';
-    }
+    const STATUS_COLORS = { critical: '#dc2626', warning: '#d97706', good: '#2563eb', excellent: '#16a34a' };
 
     function zone(lat) {
       if (lat >= 43.30) return 'Nord';
@@ -633,39 +647,94 @@
       return 'Sud';
     }
 
+    // Animated counter
+    function animateValue(el, target, duration = 600) {
+      const start = parseInt(el.textContent) || 0;
+      if (start === target) return;
+      const range = target - start;
+      const startTime = performance.now();
+      function step(now) {
+        const t = Math.min((now - startTime) / duration, 1);
+        const ease = 1 - Math.pow(1 - t, 3); // ease-out cubic
+        el.textContent = Math.round(start + range * ease).toLocaleString('fr-FR');
+        if (t < 1) requestAnimationFrame(step);
+      }
+      requestAnimationFrame(step);
+    }
+
     // ------- Map -------
     function initMap() {
-      map = L.map('map', { zoomControl: true }).setView([43.2965, 5.3698], 13);
-      L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; OpenStreetMap &copy; CARTO',
-        maxZoom: 19
+      map = L.map('map', {
+        zoomControl: false,
+        scrollWheelZoom: true,
+      }).setView([43.2965, 5.3698], 13);
+
+      L.control.zoom({ position: 'topright' }).addTo(map);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        maxZoom: 19,
+        subdomains: 'abcd',
       }).addTo(map);
+
       markerLayer = L.layerGroup().addTo(map);
+    }
+
+    function createMarkerIcon(bikes, capacity, color) {
+      const size = Math.max(24, Math.min(36, 24 + capacity / 8));
+      return L.divIcon({
+        className: '',
+        iconSize: [size, size],
+        iconAnchor: [size/2, size/2],
+        html: `<div style="
+          width:${size}px;height:${size}px;
+          background:${color};
+          border:2.5px solid #fff;
+          border-radius:50%;
+          display:flex;align-items:center;justify-content:center;
+          color:#fff;font-size:${size > 28 ? 11 : 10}px;font-weight:700;
+          font-family:Inter,sans-serif;
+          box-shadow:0 2px 8px rgba(0,0,0,0.2);
+          transition:transform 0.2s ease;
+          ${bikes === 0 ? 'animation:markerPulse 1.5s infinite;' : ''}
+        ">${bikes}</div>`
+      });
     }
 
     function updateMarkers() {
       markerLayer.clearLayers();
+      markerMap = {};
+
       stations.forEach(s => {
-        const r = rate(s.bikes, s.capacity);
-        const pct = Math.round(r * 100);
-        const color = markerColor(s.bikes, s.stands, s.capacity);
-        const radius = Math.max(5, Math.min(10, 5 + s.capacity / 5));
+        const r = pct(s.bikes, s.capacity);
+        const p = Math.round(r * 100);
+        const status = statusKey(s.bikes, s.capacity);
+        const color = STATUS_COLORS[status];
+        const icon = createMarkerIcon(s.bikes, s.capacity, color);
 
-        const marker = L.circleMarker([s.lat, s.lon], {
-          radius, fillColor: color, color: '#fff', weight: 2, fillOpacity: 0.9
-        });
-
+        const marker = L.marker([s.lat, s.lon], { icon });
         marker.bindPopup(`
           <div class="popup-name">${s.name}</div>
           <div class="popup-row"><span class="popup-label">Vélos</span><strong>${s.bikes} / ${s.capacity}</strong></div>
           <div class="popup-row"><span class="popup-label">Places libres</span><strong>${s.stands}</strong></div>
-          <div class="popup-row"><span class="popup-label">Disponibilité</span><strong>${pct}%</strong></div>
-          <div class="popup-bar-track"><div class="popup-bar-fill" style="width:${pct}%;background:${color}"></div></div>
-          <div style="font-size:11px;color:#6b7280;margin-top:6px">${s.address || ''}</div>
-        `, { maxWidth: 220 });
+          <div class="popup-row"><span class="popup-label">Disponibilité</span><strong style="color:${color}">${p}%</strong></div>
+          <div class="popup-bar-track"><div class="popup-bar-fill" style="width:${p}%;background:${color}"></div></div>
+          ${s.address ? `<div class="popup-addr">${s.address}</div>` : ''}
+        `, { maxWidth: 240, className: '' });
 
         markerLayer.addLayer(marker);
+        markerMap[s.id] = marker;
       });
+    }
+
+    function flyToStation(stationId) {
+      const s = stations.find(x => x.id === stationId);
+      const marker = markerMap[stationId];
+      if (s && marker) {
+        map.flyTo([s.lat, s.lon], 16, { duration: 0.8 });
+        marker.openPopup();
+        document.getElementById('map').scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }
     }
 
     // ------- Data -------
@@ -704,22 +773,21 @@
           `Mis à jour à ${now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}`;
 
         const badge = document.querySelector('.live-badge');
-        badge.style.color = 'var(--green)';
-        badge.style.background = 'var(--green-bg)';
-        badge.querySelector('.dot').style.background = 'var(--green)';
-        badge.lastElementChild && (badge.childNodes[1].textContent = 'En direct');
+        badge.style.color = '#4ade80';
+        badge.style.background = 'rgba(74,222,128,0.12)';
+        badge.querySelector('.dot').style.background = '#4ade80';
 
       } catch (err) {
         console.error('Load error:', err);
         document.getElementById('last-update').textContent = 'Erreur de mise à jour';
         const badge = document.querySelector('.live-badge');
-        badge.style.color = 'var(--red)';
-        badge.style.background = 'var(--red-bg)';
-        badge.querySelector('.dot').style.background = 'var(--red)';
+        badge.style.color = '#f87171';
+        badge.style.background = 'rgba(248,113,113,0.12)';
+        badge.querySelector('.dot').style.background = '#f87171';
       }
     }
 
-    // ------- Stats -------
+    // ------- Stats (animated) -------
     function updateStats() {
       const totalBikes = stations.reduce((s, x) => s + x.bikes, 0);
       const totalCap = stations.reduce((s, x) => s + x.capacity, 0);
@@ -727,21 +795,23 @@
       const empty = stations.filter(s => s.bikes === 0 && s.active).length;
       const avgRate = totalCap > 0 ? Math.round(totalBikes / totalCap * 100) : 0;
 
-      document.getElementById('total-bikes').textContent = totalBikes.toLocaleString('fr-FR');
+      animateValue(document.getElementById('total-bikes'), totalBikes);
       document.getElementById('bikes-sub').textContent = `sur ${totalCap.toLocaleString('fr-FR')} au total`;
       document.getElementById('bikes-bar').style.width = `${totalCap > 0 ? (totalBikes/totalCap)*100 : 0}%`;
 
-      document.getElementById('active-stations').textContent = active;
+      animateValue(document.getElementById('active-stations'), active);
       document.getElementById('stations-sub').textContent = `sur ${stations.length} stations`;
       document.getElementById('stations-bar').style.width = `${stations.length > 0 ? (active/stations.length)*100 : 0}%`;
 
-      document.getElementById('system-rate').textContent = `${avgRate}%`;
       const rateEl = document.getElementById('system-rate');
+      animateValue(rateEl, avgRate);
+      // Append % after animation
+      setTimeout(() => { if (!rateEl.textContent.includes('%')) rateEl.textContent += '%'; }, 650);
       rateEl.style.color = avgRate >= 50 ? 'var(--green)' : avgRate >= 25 ? 'var(--amber)' : 'var(--red)';
       document.getElementById('rate-bar').style.width = `${avgRate}%`;
       document.getElementById('rate-bar').style.background = rateEl.style.color;
 
-      document.getElementById('empty-count').textContent = empty;
+      animateValue(document.getElementById('empty-count'), empty);
       document.getElementById('empty-sub').textContent = empty === 0 ? 'Toutes les stations ont des vélos' : `${empty} station${empty > 1 ? 's' : ''} sans vélo`;
       document.getElementById('empty-bar').style.width = `${stations.length > 0 ? (empty/stations.length)*100 : 0}%`;
     }
@@ -751,17 +821,17 @@
       const activeStations = stations.filter(s => s.active && s.capacity > 0);
       if (activeStations.length === 0) return;
 
-      const best = activeStations.reduce((a, b) => rate(a.bikes, a.capacity) >= rate(b.bikes, b.capacity) ? a : b);
-      const worst = activeStations.reduce((a, b) => rate(a.bikes, a.capacity) <= rate(b.bikes, b.capacity) ? a : b);
+      const best = activeStations.reduce((a, b) => pct(a.bikes, a.capacity) >= pct(b.bikes, b.capacity) ? a : b);
+      const worst = activeStations.reduce((a, b) => pct(a.bikes, a.capacity) <= pct(b.bikes, b.capacity) ? a : b);
       const totalStands = stations.reduce((s, x) => s + x.stands, 0);
       const totalCap = stations.reduce((s, x) => s + x.capacity, 0);
 
       document.getElementById('best-station').textContent = best.name;
-      document.getElementById('best-detail').textContent = `${best.bikes} vélos sur ${best.capacity} (${Math.round(rate(best.bikes, best.capacity)*100)}%)`;
+      document.getElementById('best-detail').textContent = `${best.bikes} vélos sur ${best.capacity} (${Math.round(pct(best.bikes, best.capacity)*100)}%)`;
 
       document.getElementById('worst-station').textContent = worst.name;
       document.getElementById('worst-station').style.color = worst.bikes === 0 ? 'var(--red)' : '';
-      document.getElementById('worst-detail').textContent = `${worst.bikes} vélos sur ${worst.capacity} (${Math.round(rate(worst.bikes, worst.capacity)*100)}%)`;
+      document.getElementById('worst-detail').textContent = `${worst.bikes} vélos sur ${worst.capacity} (${Math.round(pct(worst.bikes, worst.capacity)*100)}%)`;
 
       document.getElementById('total-stands').textContent = totalStands.toLocaleString('fr-FR');
       const standsPct = totalCap > 0 ? Math.round(totalStands / totalCap * 100) : 0;
@@ -792,7 +862,7 @@
               <span class="zone-name">${name}</span>
               <span class="zone-rate" style="color:${color}">${r}%</span>
             </div>
-            <div class="zone-detail">${z.bikes} vélos / ${z.capacity} places &middot; ${z.count} stations${z.empty > 0 ? ` &middot; ${z.empty} vide${z.empty > 1 ? 's' : ''}` : ''}</div>
+            <div class="zone-detail">${z.bikes} vélos / ${z.capacity} places · ${z.count} stations${z.empty > 0 ? ` · ${z.empty} vide${z.empty > 1 ? 's' : ''}` : ''}</div>
             <div class="zone-bar-track"><div class="zone-bar-fill" style="width:${r}%;background:${color}"></div></div>
           </div>
         `;
@@ -805,9 +875,8 @@
       let filtered = stations.filter(s =>
         s.name.toLowerCase().includes(query) || s.address.toLowerCase().includes(query)
       );
-
       if (statusFilter !== 'all') {
-        filtered = filtered.filter(s => statusKey(s.bikes, s.stands, s.capacity) === statusFilter);
+        filtered = filtered.filter(s => statusKey(s.bikes, s.capacity) === statusFilter);
       }
 
       filtered.sort((a, b) => {
@@ -816,8 +885,8 @@
           case 'name':   va = a.name.toLowerCase(); vb = b.name.toLowerCase(); break;
           case 'bikes':  va = a.bikes; vb = b.bikes; break;
           case 'stands': va = a.stands; vb = b.stands; break;
-          case 'rate':   va = rate(a.bikes, a.capacity); vb = rate(b.bikes, b.capacity); break;
-          case 'status': va = statusKey(a.bikes, a.stands, a.capacity); vb = statusKey(b.bikes, b.stands, b.capacity); break;
+          case 'rate':   va = pct(a.bikes, a.capacity); vb = pct(b.bikes, b.capacity); break;
+          case 'status': va = statusKey(a.bikes, a.capacity); vb = statusKey(b.bikes, b.capacity); break;
           default:       va = a.name.toLowerCase(); vb = b.name.toLowerCase();
         }
         if (va < vb) return sortAsc ? -1 : 1;
@@ -825,7 +894,6 @@
         return 0;
       });
 
-      // Update sort indicators
       document.querySelectorAll('th[data-sort]').forEach(th => {
         th.classList.toggle('sorted', th.dataset.sort === sortCol);
       });
@@ -838,15 +906,15 @@
       }
 
       tbody.innerHTML = filtered.map(s => {
-        const r = rate(s.bikes, s.capacity);
-        const pct = Math.round(r * 100);
-        const color = rateColor(r);
-        const status = statusKey(s.bikes, s.stands, s.capacity);
-        return `<tr>
-          <td><div class="station-name">${s.name}</div><div class="station-addr">${s.address || ''}</div></td>
+        const r = pct(s.bikes, s.capacity);
+        const p = Math.round(r * 100);
+        const color = pctColor(r);
+        const status = statusKey(s.bikes, s.capacity);
+        return `<tr onclick="flyToStation('${s.id}')">
+          <td><div class="station-name">${s.name}</div>${s.address ? `<div class="station-addr">${s.address}</div>` : ''}</td>
           <td><strong>${s.bikes}</strong> <span style="color:var(--muted)">/ ${s.capacity}</span></td>
           <td>${s.stands}</td>
-          <td><div class="avail-bar"><div class="avail-track"><div class="avail-fill" style="width:${pct}%;background:${color}"></div></div><span class="avail-pct" style="color:${color}">${pct}%</span></div></td>
+          <td><div class="avail-bar"><div class="avail-track"><div class="avail-fill" style="width:${p}%;background:${color}"></div></div><span class="avail-pct" style="color:${color}">${p}%</span></div></td>
           <td><span class="badge badge-label ${status}"></span></td>
         </tr>`;
       }).join('');
@@ -854,85 +922,49 @@
       document.getElementById('table-count').textContent = `${filtered.length} station${filtered.length > 1 ? 's' : ''}`;
     }
 
-    // ------- Session chart (no Supabase needed) -------
+    // ------- Session chart -------
     function recordSessionPoint() {
       if (!useSessionChart) return;
       const totalBikes = stations.reduce((s, x) => s + x.bikes, 0);
       const totalStands = stations.reduce((s, x) => s + x.stands, 0);
       const now = new Date();
       sessionHistory.push({
-        time: now,
         label: now.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }),
-        bikes: totalBikes,
-        stands: totalStands,
+        bikes: totalBikes, stands: totalStands,
       });
-
-      // Keep max 120 points (2h at 60s intervals)
       if (sessionHistory.length > 120) sessionHistory.shift();
       updateSessionChart();
     }
 
+    const CHART_OPTS = {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { position: 'top', align: 'end', labels: { boxWidth: 10, padding: 16, font: { size: 11, family: 'Inter' }, usePointStyle: true, pointStyle: 'circle' } },
+        tooltip: { backgroundColor: '#0f172a', titleFont: { size: 12, family: 'Inter' }, bodyFont: { size: 12, family: 'Inter' }, padding: 12, cornerRadius: 8, displayColors: true, boxPadding: 4 }
+      },
+      scales: {
+        x: { grid: { display: false }, ticks: { maxTicksLimit: 10, font: { size: 11, family: 'Inter' }, color: '#94a3b8' } },
+        y: { beginAtZero: true, grid: { color: '#f1f5f9' }, ticks: { font: { size: 11, family: 'Inter' }, color: '#94a3b8' } }
+      }
+    };
+
+    function makeDataset(label, color) {
+      return {
+        label, data: [],
+        borderColor: color,
+        backgroundColor: color.replace(')', ',0.06)').replace('rgb', 'rgba'),
+        fill: true, tension: 0.4, pointRadius: 2, pointHoverRadius: 5,
+        pointBackgroundColor: color, borderWidth: 2,
+      };
+    }
+
     function initSessionChart() {
-      const ctx = document.getElementById('trend-chart');
-      chart = new Chart(ctx, {
+      chart = new Chart(document.getElementById('trend-chart'), {
         type: 'line',
-        data: {
-          labels: [],
-          datasets: [
-            {
-              label: 'Vélos disponibles',
-              data: [],
-              borderColor: '#0078D4',
-              backgroundColor: 'rgba(0,120,212,0.06)',
-              fill: true,
-              tension: 0.35,
-              pointRadius: 2,
-              pointBackgroundColor: '#0078D4',
-              borderWidth: 2,
-            },
-            {
-              label: 'Places libres',
-              data: [],
-              borderColor: '#16a34a',
-              backgroundColor: 'rgba(22,163,74,0.06)',
-              fill: true,
-              tension: 0.35,
-              pointRadius: 2,
-              pointBackgroundColor: '#16a34a',
-              borderWidth: 2,
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { mode: 'index', intersect: false },
-          plugins: {
-            legend: {
-              position: 'top',
-              align: 'end',
-              labels: { boxWidth: 12, padding: 16, font: { size: 12 } }
-            },
-            tooltip: {
-              backgroundColor: '#1a1a1a',
-              titleFont: { size: 12 },
-              bodyFont: { size: 12 },
-              padding: 10,
-              cornerRadius: 6,
-            }
-          },
-          scales: {
-            x: {
-              grid: { display: false },
-              ticks: { maxTicksLimit: 10, font: { size: 11 }, color: '#6b7280' }
-            },
-            y: {
-              beginAtZero: true,
-              grid: { color: '#f0f0f0' },
-              ticks: { font: { size: 11 }, color: '#6b7280' }
-            }
-          }
-        }
+        data: { labels: [], datasets: [makeDataset('Vélos disponibles', '#2563eb'), makeDataset('Places libres', '#16a34a')] },
+        options: CHART_OPTS,
       });
     }
 
@@ -944,12 +976,11 @@
       chart.update('none');
     }
 
-    // ------- Supabase trends (when connected) -------
+    // ------- Supabase trends -------
     async function loadSupabaseTrends() {
       try {
         const sb = supabase.createClient(SB_URL, SB_KEY);
         const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-
         const { data, error } = await sb
           .from('levelo_observations')
           .select('available_bikes, available_stands, created_at')
@@ -957,15 +988,12 @@
           .order('created_at', { ascending: true });
 
         if (error || !data || data.length === 0) {
-          document.getElementById('chart-note').textContent = 'Aucune donnée historique trouvée dans Supabase. Mode session actif.';
-          useSessionChart = true;
-          initSessionChart();
-          return;
+          document.getElementById('chart-note').textContent = 'Aucune donnée historique trouvée. Mode session actif.';
+          useSessionChart = true; initSessionChart(); return;
         }
 
-        document.getElementById('chart-note').textContent = `Historique Supabase - ${data.length.toLocaleString('fr-FR')} observations sur 24h`;
+        document.getElementById('chart-note').textContent = `Historique Supabase — ${data.length.toLocaleString('fr-FR')} observations sur 24 h`;
 
-        // Aggregate by 10-min buckets
         const buckets = {};
         data.forEach(row => {
           const d = new Date(row.created_at);
@@ -978,51 +1006,22 @@
         });
 
         const keys = Object.keys(buckets).sort();
-        const labels = keys.map(k => new Date(k).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' }));
-        const bikeValues = keys.map(k => Math.round(buckets[k].bikes / buckets[k].n));
-        const standValues = keys.map(k => Math.round(buckets[k].stands / buckets[k].n));
-
         chart = new Chart(document.getElementById('trend-chart'), {
           type: 'line',
           data: {
-            labels,
+            labels: keys.map(k => new Date(k).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })),
             datasets: [
-              {
-                label: 'Vélos disponibles (moy.)',
-                data: bikeValues,
-                borderColor: '#0078D4',
-                backgroundColor: 'rgba(0,120,212,0.06)',
-                fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2,
-              },
-              {
-                label: 'Places libres (moy.)',
-                data: standValues,
-                borderColor: '#16a34a',
-                backgroundColor: 'rgba(22,163,74,0.06)',
-                fill: true, tension: 0.3, pointRadius: 0, borderWidth: 2,
-              }
+              { ...makeDataset('Vélos disponibles (moy.)', '#2563eb'), data: keys.map(k => Math.round(buckets[k].bikes / buckets[k].n)), pointRadius: 0 },
+              { ...makeDataset('Places libres (moy.)', '#16a34a'), data: keys.map(k => Math.round(buckets[k].stands / buckets[k].n)), pointRadius: 0 },
             ]
           },
-          options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            interaction: { mode: 'index', intersect: false },
-            plugins: {
-              legend: { position: 'top', align: 'end', labels: { boxWidth: 12, padding: 16, font: { size: 12 } } },
-              tooltip: { backgroundColor: '#1a1a1a', padding: 10, cornerRadius: 6 }
-            },
-            scales: {
-              x: { grid: { display: false }, ticks: { maxTicksLimit: 14, font: { size: 11 }, color: '#6b7280' } },
-              y: { beginAtZero: true, grid: { color: '#f0f0f0' }, ticks: { font: { size: 11 }, color: '#6b7280' } }
-            }
-          }
+          options: { ...CHART_OPTS, scales: { ...CHART_OPTS.scales, x: { ...CHART_OPTS.scales.x, ticks: { ...CHART_OPTS.scales.x.ticks, maxTicksLimit: 14 } } } },
         });
 
       } catch (err) {
         console.error('Supabase error:', err);
         document.getElementById('chart-note').textContent = 'Erreur Supabase. Mode session actif.';
-        useSessionChart = true;
-        initSessionChart();
+        useSessionChart = true; initSessionChart();
       }
     }
   </script>
