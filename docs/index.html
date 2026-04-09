@@ -556,9 +556,9 @@
     const INFO_URL = `${GBFS_BASE}/station_information.json`;
     const REFRESH_MS = 60_000;
 
-    // Supabase (set these to enable 24h historical trends)
-    const SB_URL = '';
-    const SB_KEY = '';
+    // Supabase (public anon key for read-only dashboard access)
+    const SB_URL = 'https://ivfstnypwyshxhylbwxq.supabase.co';
+    const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Iml2ZnN0bnlwd3lzaHhoeWxid3hxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU3NTA2MzIsImV4cCI6MjA5MTMyNjYzMn0.gdER0P8rslOTPf0J2pY-sUzhSHWgBBDVbrl2AwM2NxY';
 
     let map, markerLayer, chart;
     let stations = [];
